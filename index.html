@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Treino">
+<meta name="theme-color" content="#0d0d0d">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>App Treino</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#0d0d0d; --card:#1a1a1a; --border:#2a2a2a;
+  --accent:#e8ff3c; --red:#ff4d1c; --blue:#3c8aff;
+  --green:#1cc964; --purple:#b03cff; --teal:#3caaff;
+  --muted:#555; --text:#f0f0f0;
+}
+body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; min-height:100vh; padding-bottom:60px; overflow-x:hidden; }
+
+.header { background:#111; border-bottom:1px solid var(--border); padding:14px 14px 12px; position:sticky; top:0; z-index:100; }
+.header-top { display:flex; justify-content:space-between; align-items:center; }
+.header-label { font-size:9px; font-family:monospace; color:var(--muted); letter-spacing:2px; }
+.header-title { font-size:22px; font-weight:800; line-height:1; }
+.header-title span { color:var(--accent); }
+.header-sub { font-size:10px; color:var(--muted); margin-top:3px; font-family:monospace; }
+.phase-badge { background:rgba(232,255,60,.1); border:1px solid var(--accent); color:var(--accent); font-size:10px; font-weight:700; padding:4px 10px; border-radius:20px; letter-spacing:1px; font-family:monospace; white-space:nowrap; }
+
+.week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; padding:12px 10px 0; }
+.week-cell { background:var(--card); border:1px solid var(--border); border-radius:6px; padding:8px 3px; text-align:center; cursor:pointer; }
+.week-cell.active { border-color:var(--accent); }
+.week-cell.run { border-color:var(--green); }
+.week-cell.rest { opacity:.3; cursor:default; }
+.wd { font-size:8px; font-family:monospace; color:var(--muted); margin-bottom:3px; }
+.wn { font-size:9px; font-weight:700; color:var(--accent); line-height:1.2; }
+.week-cell.run .wn { color:var(--green); }
+.week-cell.rest .wn { color:var(--muted); }
+
+.tabs { display:flex; gap:6px; padding:12px 10px 0; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tab { flex-shrink:0; padding:7px 16px; border-radius:20px; border:1px solid var(--border); background:var(--card); color:#777; font-weight:700; font-size:12px; cursor:pointer; }
+.tab.on-a { background:var(--red); border-color:var(--red); color:#fff; }
+.tab.on-b { background:var(--blue); border-color:var(--blue); color:#fff; }
+.tab.on-c { background:var(--green); border-color:var(--green); color:#000; }
+.tab.on-d { background:var(--purple); border-color:var(--purple); color:#fff; }
+.tab.on-r { background:var(--green); border-color:var(--green); color:#000; }
+
+.pane { display:none; padding:14px 10px 0; }
+.pane.show { display:block; }
+
+.day-hdr { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.day-badge { font-size:10px; font-weight:800; padding:4px 12px; border-radius:4px; letter-spacing:2px; }
+.day-title { font-size:20px; font-weight:800; letter-spacing:1px; }
+.day-dur { margin-left:auto; font-size:11px; color:var(--muted); }
+
+.ex-card { border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:10px; }
+.ex-card-header { display:flex; align-items:center; gap:8px; padding:12px 12px 8px; background:#111; cursor:pointer; }
+.ex-num { font-family:monospace; font-size:10px; color:var(--muted); flex-shrink:0; width:24px; }
+.ex-name { font-size:14px; font-weight:600; flex:1; line-height:1.3; }
+.ex-note { font-size:10px; color:var(--muted); margin-top:2px; line-height:1.3; }
+.ex-chevron { color:var(--muted); font-size:12px; transition:transform .2s; flex-shrink:0; }
+.ex-chevron.open { transform:rotate(180deg); }
+.ex-pills { display:flex; gap:5px; flex-wrap:wrap; padding:0 12px 10px; background:#111; }
+
+.pill { display:inline-block; font-family:monospace; font-size:11px; border-radius:4px; padding:2px 7px; border:1px solid var(--border); background:#1a1a1a; color:#aaa; white-space:nowrap; }
+.pill.y { border-color:var(--accent); color:var(--accent); background:rgba(232,255,60,.05); }
+.pill.o { border-color:#ff7a40; color:#ff7a40; background:rgba(255,77,28,.05); }
+.pill.b { border-color:var(--teal); color:var(--teal); background:rgba(60,170,255,.05); }
+.pill.g { border-color:var(--green); color:var(--green); background:rgba(28,201,100,.05); }
+
+.log-area { padding:12px; border-top:1px solid var(--border); background:var(--card); }
+.log-title { font-size:9px; font-family:monospace; letter-spacing:2px; color:var(--accent); margin-bottom:10px; }
+.log-inputs { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center; margin-bottom:12px; }
+.log-input { background:#111; border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:14px; width:100%; font-family:monospace; }
+.log-input:focus { outline:none; border-color:var(--accent); }
+.log-input::placeholder { color:#444; }
+.log-btn { background:var(--accent); color:#000; border:none; border-radius:6px; padding:8px 14px; font-weight:800; font-size:13px; cursor:pointer; }
+
+.history { margin-top:4px; }
+.hist-title { font-size:9px; font-family:monospace; letter-spacing:2px; color:var(--muted); margin-bottom:8px; }
+.hist-row { display:grid; grid-template-columns:72px 1fr 1fr; gap:6px; padding:7px 0; border-bottom:1px solid #1e1e1e; align-items:center; }
+.hist-row:last-child { border-bottom:none; }
+.hist-date { font-size:10px; color:var(--muted); font-family:monospace; }
+.hist-val { font-size:12px; font-family:monospace; }
+.hist-val span { color:var(--accent); font-weight:700; }
+.hist-empty { font-size:11px; color:#333; font-style:italic; }
+
+.cardio-card { border:1px solid rgba(60,170,255,.25); border-radius:10px; margin-bottom:12px; background:rgba(60,170,255,.03); padding:12px; }
+.cardio-top { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.cardio-badge { font-size:9px; font-family:monospace; font-weight:700; padding:3px 8px; border-radius:4px; border:1px solid var(--teal); color:var(--teal); background:rgba(60,170,255,.1); }
+.cardio-name { font-size:13px; font-weight:600; }
+.cardio-note { font-size:11px; color:var(--muted); line-height:1.4; margin-top:2px; }
+
+.notes { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+.notes-title { font-size:9px; font-family:monospace; letter-spacing:2px; color:var(--accent); margin-bottom:8px; }
+.note-item { font-size:12px; color:#777; padding-left:12px; position:relative; margin-bottom:5px; line-height:1.4; }
+.note-item::before { content:'→'; position:absolute; left:0; color:var(--accent); font-size:9px; top:2px; }
+
+.run-table { border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:12px; }
+.run-head { display:grid; grid-template-columns:34px 1fr 64px 74px; background:#111; padding:8px 12px; gap:6px; }
+.run-head span { font-size:8px; font-family:monospace; letter-spacing:1px; color:#444; }
+.run-row { display:grid; grid-template-columns:34px 1fr 64px 74px; padding:10px 12px; gap:6px; border-top:1px solid #1a1a1a; align-items:center; }
+.run-row.light { opacity:.65; }
+.run-row.goal { background:rgba(28,201,100,.05); border-top-color:rgba(28,201,100,.2); }
+.run-struct { font-size:11px; color:#bbb; line-height:1.4; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-label">APP TREINO · AVANÇADO</div>
+      <div class="header-title">FASE <span>2</span></div>
+      <div class="header-sub">97KG · 1,77M · EMAGRECIMENTO</div>
+    </div>
+    <div class="phase-badge">SET–NOV 2026</div>
+  </div>
+</div>
+
+<div class="week-grid">
+  <div class="week-cell active" onclick="setTab('A')"><div class="wd">SEG</div><div class="wn">TREINO A</div></div>
+  <div class="week-cell active" onclick="setTab('B')"><div class="wd">TER</div><div class="wn">TREINO B</div></div>
+  <div class="week-cell rest"><div class="wd">QUA</div><div class="wn">FOLGA</div></div>
+  <div class="week-cell active" onclick="setTab('C')"><div class="wd">QUI</div><div class="wn">TREINO C</div></div>
+  <div class="week-cell active" onclick="setTab('D')"><div class="wd">SEX</div><div class="wn">TREINO D</div></div>
+  <div class="week-cell run" onclick="setTab('R')"><div class="wd">SÁB</div><div class="wn">CORRIDA</div></div>
+  <div class="week-cell rest"><div class="wd">DOM</div><div class="wn">FOLGA</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab" id="tab-A" onclick="setTab('A')">A — PEITO</div>
+  <div class="tab" id="tab-B" onclick="setTab('B')">B — COSTAS</div>
+  <div class="tab" id="tab-C" onclick="setTab('C')">C — PERNAS</div>
+  <div class="tab" id="tab-D" onclick="setTab('D')">D — OMBROS</div>
+  <div class="tab" id="tab-R" onclick="setTab('R')">CORRIDA</div>
+</div>
+
+<!-- TREINO A -->
+<div class="pane" id="pane-A">
+  <div class="day-hdr">
+    <div class="day-badge" style="background:var(--red);color:#fff">DIA A</div>
+    <div class="day-title">PEITO + TRÍCEPS</div>
+    <div class="day-dur">~80 min</div>
+  </div>
+  <div id="ex-A1" class="ex-card"></div>
+  <div id="ex-A2" class="ex-card"></div>
+  <div id="ex-A3" class="ex-card"></div>
+  <div id="ex-A4" class="ex-card"></div>
+  <div id="ex-A5" class="ex-card"></div>
+  <div id="ex-A6" class="ex-card"></div>
+  <div id="ex-A7" class="ex-card"></div>
+  <div class="cardio-card">
+    <div class="cardio-top"><div class="cardio-badge">ESTEIRA</div><div class="cardio-name">HIIT</div></div>
+    <div class="cardio-note">1min corrida forte (11–13 km/h) : 1min caminhada × 8 rounds | inclinação 1% | 20min total</div>
+  </div>
+  <div class="notes">
+    <div class="notes-title">OBSERVAÇÕES</div>
+    <div class="note-item">Supino com halteres: amplitude maior que barra — explore o alongamento</div>
+    <div class="note-item">Paralela: desça até 90° no cotovelo, incline levemente o tronco para frente</div>
+    <div class="note-item">HIIT: 1min de corrida deve ser desconfortável — FCmax 85–92%</div>
+  </div>
+</div>
+
+<!-- TREINO B -->
+<div class="pane" id="pane-B">
+  <div class="day-hdr">
+    <div class="day-badge" style="background:var(--blue);color:#fff">DIA B</div>
+    <div class="day-title">COSTAS + BÍCEPS</div>
+    <div class="day-dur">~80 min</div>
+  </div>
+  <div id="ex-B1" class="ex-card"></div>
+  <div id="ex-B2" class="ex-card"></div>
+  <div id="ex-B3" class="ex-card"></div>
+  <div id="ex-B4" class="ex-card"></div>
+  <div id="ex-B5" class="ex-card"></div>
+  <div id="ex-B6" class="ex-card"></div>
+  <div id="ex-B7" class="ex-card"></div>
+  <div class="cardio-card">
+    <div class="cardio-top"><div class="cardio-badge">ESTEIRA</div><div class="cardio-name">Intervalado Inclinado</div></div>
+    <div class="cardio-note">2min corrida (9–10 km/h, incl. 3%) : 1min caminhada × 5 rounds | 20min total</div>
+  </div>
+  <div class="notes">
+    <div class="notes-title">OBSERVAÇÕES</div>
+    <div class="note-item">Remada Cavalinho: peito apoiado no suporte, isola melhor o dorsal</div>
+    <div class="note-item">Puxada triângulo: pegada neutra recruta mais o redondo maior</div>
+    <div class="note-item">Rosca martelo: neutra — trabalha braquial e braquiorradial além do bíceps</div>
+  </div>
+</div>
+
+<!-- TREINO C -->
+<div class="pane" id="pane-C">
+  <div class="day-hdr">
+    <div class="day-badge" style="background:var(--green);color:#000">DIA C</div>
+    <div class="day-title">PERNAS COMPLETO</div>
+    <div class="day-dur">~85 min</div>
+  </div>
+  <div id="ex-C1" class="ex-card"></div>
+  <div id="ex-C2" class="ex-card"></div>
+  <div id="ex-C3" class="ex-card"></div>
+  <div id="ex-C4" class="ex-card"></div>
+  <div id="ex-C5" class="ex-card"></div>
+  <div id="ex-C6" class="ex-card"></div>
+  <div id="ex-C7" class="ex-card"></div>
+  <div class="cardio-card">
+    <div class="cardio-top"><div class="cardio-badge">ESTEIRA</div><div class="cardio-name">Intervalado Moderado</div></div>
+    <div class="cardio-note">90s corrida (9–10 km/h) : 60s caminhada × 7 rounds | incl. 1% | 20min total</div>
+  </div>
+  <div class="notes">
+    <div class="notes-title">OBSERVAÇÕES</div>
+    <div class="note-item">Levantamento Terra: composto mais completo da semana — técnica acima de carga</div>
+    <div class="note-item">Hack Squat: joelhos no eixo dos pés, não deixe colapsar para dentro</div>
+    <div class="note-item">Afundo caminhando: mantém tensão contínua e trabalha equilíbrio</div>
+  </div>
+</div>
+
+<!-- TREINO D -->
+<div class="pane" id="pane-D">
+  <div class="day-hdr">
+    <div class="day-badge" style="background:var(--purple);color:#fff">DIA D</div>
+    <div class="day-title">OMBROS + ABDÔMEN</div>
+    <div class="day-dur">~80 min</div>
+  </div>
+  <div id="ex-D1" class="ex-card"></div>
+  <div id="ex-D2" class="ex-card"></div>
+  <div id="ex-D3" class="ex-card"></div>
+  <div id="ex-D4" class="ex-card"></div>
+  <div id="ex-D5" class="ex-card"></div>
+  <div id="ex-D6" class="ex-card"></div>
+  <div id="ex-D7" class="ex-card"></div>
+  <div id="ex-D8" class="ex-card"></div>
+  <div class="cardio-card">
+    <div class="cardio-top"><div class="cardio-badge">ESTEIRA</div><div class="cardio-name">HIIT Progressivo</div></div>
+    <div class="cardio-note">2min corrida forte (12–14 km/h) : 1min caminhada × 5 rounds | o mais intenso | 20min total</div>
+  </div>
+  <div class="notes">
+    <div class="notes-title">OBSERVAÇÕES</div>
+    <div class="note-item">Desenvolvimento com barra: permite mais carga que halteres — aquecimento antes</div>
+    <div class="note-item">Face pull: nunca pular — equilibra o volume de peito e protege o manguito</div>
+    <div class="note-item">HIIT mais pesado da semana — FCmax alvo 87–93% no final de cada round</div>
+  </div>
+</div>
+
+<!-- CORRIDA -->
+<div class="pane" id="pane-R">
+  <div class="day-hdr">
+    <div class="day-badge" style="background:var(--green);color:#000">SÁB</div>
+    <div class="day-title">PROGRESSÃO 10KM</div>
+    <div class="day-dur">1x/semana</div>
+  </div>
+  <div class="notes" style="border-color:rgba(28,201,100,.3)">
+    <div class="notes-title" style="color:var(--green)">PONTO DE PARTIDA ATUAL</div>
+    <div class="note-item">20min caminhada + 35min corrida = ~5,5km</div>
+    <div class="note-item">Meta: 10km corridos sem parar em ritmo confortável</div>
+    <div class="note-item">Ritmo de base: conversável — construção aeróbica, não velocidade</div>
+    <div class="note-item">Regra: nunca aumente volume mais que ~10% por semana</div>
+  </div>
+  <div class="run-table">
+    <div class="run-head"><span>SEM</span><span>ESTRUTURA</span><span>CORRIDA</span><span>TOTAL</span></div>
+    <div class="run-row"><div><span class="pill">1</span></div><div class="run-struct">15min caminhada + 38min corrida</div><div><span class="pill y">38 min</span></div><div><span class="pill">~6,0 km</span></div></div>
+    <div class="run-row"><div><span class="pill">2</span></div><div class="run-struct">10min caminhada + 42min corrida</div><div><span class="pill y">42 min</span></div><div><span class="pill">~6,7 km</span></div></div>
+    <div class="run-row"><div><span class="pill">3</span></div><div class="run-struct">5min caminhada + 46min corrida</div><div><span class="pill y">46 min</span></div><div><span class="pill">~7,3 km</span></div></div>
+    <div class="run-row light"><div><span class="pill">4</span></div><div class="run-struct">Semana leve — 30min corrida + 10min caminhada</div><div><span class="pill y">30 min</span></div><div><span class="pill">~5,0 km</span></div></div>
+    <div class="run-row"><div><span class="pill">5</span></div><div class="run-struct">Corrida contínua, sem caminhada</div><div><span class="pill y">48 min</span></div><div><span class="pill">~7,8 km</span></div></div>
+    <div class="run-row"><div><span class="pill">6</span></div><div class="run-struct">Corrida contínua</div><div><span class="pill y">51 min</span></div><div><span class="pill">~8,3 km</span></div></div>
+    <div class="run-row"><div><span class="pill">7</span></div><div class="run-struct">Corrida contínua</div><div><span class="pill y">54 min</span></div><div><span class="pill">~8,8 km</span></div></div>
+    <div class="run-row light"><div><span class="pill">8</span></div><div class="run-struct">Semana leve — 40min corrida confortável</div><div><span class="pill y">40 min</span></div><div><span class="pill">~6,5 km</span></div></div>
+    <div class="run-row"><div><span class="pill">9</span></div><div class="run-struct">Corrida contínua</div><div><span class="pill y">57 min</span></div><div><span class="pill">~9,3 km</span></div></div>
+    <div class="run-row"><div><span class="pill">10</span></div><div class="run-struct">Corrida contínua</div><div><span class="pill y">60 min</span></div><div><span class="pill">~9,8 km</span></div></div>
+    <div class="run-row light"><div><span class="pill">11</span></div><div class="run-struct">Semana leve — manutenção</div><div><span class="pill y">45 min</span></div><div><span class="pill">~7,3 km</span></div></div>
+    <div class="run-row goal"><div><span class="pill g">12</span></div><div class="run-struct"><strong>Tentativa dos 10km</strong> — sem pressa</div><div><span class="pill g">~62 min</span></div><div><span class="pill g">10 km 🏁</span></div></div>
+  </div>
+  <div class="notes">
+    <div class="notes-title">OBSERVAÇÕES</div>
+    <div class="note-item">Semanas 4, 8 e 11 são de descarga — volume reduzido de propósito</div>
+    <div class="note-item">Se uma semana estiver difícil, repita antes de avançar</div>
+    <div class="note-item">Dor articular (joelho, canela) = parar e reduzir volume</div>
+    <div class="note-item">Esse dia conta como cardio — ajuste finishers ABCD se as pernas estiverem pesadas</div>
+  </div>
+</div>
+
+<script>
+const EX = {
+  // PEITO + TRÍCEPS — variação da Fase 1
+  'A1': { name:'Supino c/ Halteres (pegada neutra)', note:'Amplitude maior que barra — foco no alongamento do peitoral', series:'4×8–10', cad:'3·1·2', rest:'90s' },
+  'A2': { name:'Supino Declinado c/ Barra', note:'Enfatiza feixe esternal inferior do peitoral', series:'4×10–12', cad:'3·0·2', rest:'75s' },
+  'A3': { name:'Fly na Máquina (Peck Deck)', note:'Pausa de 1s na contração — foco na adução', series:'3×12–15', cad:'3·1·2', rest:'60s' },
+  'A4': { name:'Crossover no Cabo (alto → baixo)', note:'Feixe inferior — cotovelos levemente flexionados', series:'3×15', cad:'2·1·2', rest:'45s' },
+  'A5': { name:'Tríceps Francês c/ Halter (unilateral)', note:'Cotovelo apontado para cima, sem abrir', series:'4×12 cada', cad:'3·1·2', rest:'75s' },
+  'A6': { name:'Paralela c/ Peso (Dip)', note:'Inclinação leve do tronco para frente — foco no tríceps', series:'3×10–12', cad:'2·1·2', rest:'60s' },
+  'A7': { name:'Tríceps Barra no Cabo (barra reta)', note:'Cotovelos fixos ao lado do corpo', series:'3×15', cad:'2·0·2', rest:'45s' },
+
+  // COSTAS + BÍCEPS — variação da Fase 1
+  'B1': { name:'Levantamento Terra Romeno c/ Barra', note:'Composto pesado — coluna neutra, puxa pelos calcanhares', series:'4×6–8', cad:'3·1·2', rest:'90s' },
+  'B2': { name:'Remada Cavalinho (T-Bar Row)', note:'Peito apoiado no suporte — isola o dorsal', series:'4×10–12', cad:'3·1·2', rest:'75s' },
+  'B3': { name:'Puxada Triângulo (pegada neutra)', note:'Pegada neutra recruta mais redondo maior e bíceps', series:'3×10–12', cad:'3·1·2', rest:'75s' },
+  'B4': { name:'Remada Sentada no Cabo (triângulo)', note:'Puxar até o umbigo, retrair as escápulas', series:'3×12', cad:'3·0·2', rest:'60s' },
+  'B5': { name:'Pullover na Polia Alta', note:'Braços estendidos — trabalha o serrátil e dorsal', series:'3×15', cad:'3·1·2', rest:'60s' },
+  'B6': { name:'Rosca Martelo c/ Halteres', note:'Pegada neutra — braquial e braquiorradial além do bíceps', series:'4×10–12', cad:'3·1·2', rest:'75s' },
+  'B7': { name:'Rosca Spider (banco inclinado invertido)', note:'Cotovelo fixo — isola o bíceps sem compensação', series:'3×12', cad:'3·1·2', rest:'60s' },
+
+  // PERNAS — variação da Fase 1
+  'C1': { name:'Levantamento Terra c/ Barra', note:'Aquecimento obrigatório — técnica acima de carga', series:'5×5', cad:'3·1·2', rest:'120s' },
+  'C2': { name:'Hack Squat na Máquina', note:'Joelhos no eixo dos pés, profundidade total', series:'4×10–12', cad:'3·1·2', rest:'90s' },
+  'C3': { name:'Afundo Caminhando c/ Halteres', note:'Tensão contínua — passada longa, joelho não toca o chão', series:'3×12 cada', cad:'2·0·2', rest:'75s' },
+  'C4': { name:'Cadeira Adutora', note:'Pausa de 1s na contração — ative o glúteo médio', series:'3×15', cad:'2·1·2', rest:'60s' },
+  'C5': { name:'Flexora em Pé (unilateral)', note:'Isola isquiotibial sem compensação do quadril', series:'4×12 cada', cad:'3·1·2', rest:'60s' },
+  'C6': { name:'Agachamento Sumô c/ Halter (Goblet)', note:'Pés abertos, enfatiza adutores e glúteo', series:'3×15', cad:'3·0·2', rest:'60s' },
+  'C7': { name:'Panturrilha Sentado (Seated Calf)', note:'Isola o solear — diferente do calf em pé', series:'4×20', cad:'2·2·2', rest:'45s' },
+
+  // OMBROS + ABDÔMEN — variação da Fase 1
+  'D1': { name:'Desenvolvimento c/ Barra (barra reta)', note:'Permite mais carga — aquecimento antes', series:'4×8–10', cad:'3·1·2', rest:'90s' },
+  'D2': { name:'Elevação Lateral na Polia (unilateral)', note:'Cabo oferece tensão constante diferente do halter', series:'4×15 cada', cad:'2·1·3', rest:'60s' },
+  'D3': { name:'Pássaro c/ Halteres (deltóide posterior)', note:'Tronco inclinado 45°, cotovelos levemente flexionados', series:'4×15', cad:'2·1·2', rest:'60s' },
+  'D4': { name:'Face Pull no Cabo', note:'Fundamental — nunca pular com volume alto de peito', series:'4×15', cad:'2·2·2', rest:'60s' },
+  'D5': { name:'Desenvolvimento Arnold c/ Halteres', note:'Rotação do punho recruta todas as cabeças do deltóide', series:'3×12', cad:'2·1·2', rest:'60s' },
+  'D6': { name:'Roda Abdominal (Ab Wheel)', note:'Core totalmente contraído — não deixe o lombar ceder', series:'3×10–12', cad:'3·1·2', rest:'60s' },
+  'D7': { name:'Prancha com Toque no Ombro', note:'Quadril estável — sem rotação do tronco', series:'3×20 toques', cad:'estático', rest:'45s' },
+  'D8': { name:'Elevação de Pernas na Barra', note:'', series:'3×15', cad:'2·1·2', rest:'60s' },
+};
+
+function getLogs(id) {
+  try { return JSON.parse(localStorage.getItem('log_'+id)||'[]'); } catch(e) { return []; }
+}
+function saveLogs(id, logs) {
+  localStorage.setItem('log_'+id, JSON.stringify(logs.slice(-3)));
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+
+function renderCard(id) {
+  const ex = EX[id];
+  const el = document.getElementById('ex-'+id);
+  if (!el||!ex) return;
+  const logs = getLogs(id);
+  const open = el.classList.contains('is-open');
+  const histHTML = logs.length===0
+    ? '<div class="hist-empty">Nenhum registro ainda</div>'
+    : logs.slice().reverse().map(l=>`
+        <div class="hist-row">
+          <div class="hist-date">${fmtDate(l.date)}</div>
+          <div class="hist-val"><span>${l.weight}kg</span></div>
+          <div class="hist-val"><span>${l.reps}</span> reps</div>
+        </div>`).join('');
+  el.innerHTML = `
+    <div class="ex-card-header" onclick="toggleCard('${id}')">
+      <div class="ex-num">${id}</div>
+      <div style="flex:1">
+        <div class="ex-name">${ex.name}</div>
+        ${ex.note?`<div class="ex-note">${ex.note}</div>`:''}
+      </div>
+      <div class="ex-chevron ${open?'open':''}">▾</div>
+    </div>
+    <div class="ex-pills">
+      <span class="pill y">${ex.series}</span>
+      <span class="pill">${ex.cad}</span>
+      <span class="pill o">${ex.rest}</span>
+    </div>
+    ${open?`
+    <div class="log-area">
+      <div class="log-title">REGISTRAR SÉRIE</div>
+      <div class="log-inputs">
+        <input class="log-input" id="w-${id}" type="number" placeholder="Peso (kg)" inputmode="decimal">
+        <input class="log-input" id="r-${id}" type="number" placeholder="Reps" inputmode="numeric">
+        <button class="log-btn" onclick="saveLog('${id}')">✓</button>
+      </div>
+      <div class="history">
+        <div class="hist-title">ÚLTIMOS 3 TREINOS</div>
+        ${histHTML}
+      </div>
+    </div>`:''}`;
+}
+
+function toggleCard(id) {
+  const el = document.getElementById('ex-'+id);
+  el.classList.toggle('is-open');
+  renderCard(id);
+  if (el.classList.contains('is-open')) {
+    setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
+}
+
+function saveLog(id) {
+  const w = document.getElementById('w-'+id).value.trim();
+  const r = document.getElementById('r-'+id).value.trim();
+  if (!w||!r) { alert('Preencha peso e reps'); return; }
+  const logs = getLogs(id);
+  logs.push({date:new Date().toISOString(), weight:w, reps:r});
+  saveLogs(id, logs);
+  renderCard(id);
+}
+
+const TC = {A:'on-a',B:'on-b',C:'on-c',D:'on-d',R:'on-r'};
+function setTab(t) {
+  ['A','B','C','D','R'].forEach(x=>{
+    document.getElementById('pane-'+x).classList.remove('show');
+    document.getElementById('tab-'+x).className='tab';
+  });
+  document.getElementById('pane-'+t).classList.add('show');
+  document.getElementById('tab-'+t).className='tab '+TC[t];
+}
+
+Object.keys(EX).forEach(id=>renderCard(id));
+setTab('A');
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+</script>
+</body>
+</html>
