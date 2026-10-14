@@ -80,8 +80,9 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-sys
 
 .history { margin-top:4px; }
 .hist-title { font-size:9px; font-family:monospace; letter-spacing:2px; color:var(--muted); margin-bottom:8px; }
-.hist-row { display:grid; grid-template-columns:72px 1fr 1fr; gap:6px; padding:7px 0; border-bottom:1px solid #1e1e1e; align-items:center; }
+.hist-row { display:grid; grid-template-columns:90px 1fr 1fr; gap:6px; padding:7px 0; border-bottom:1px solid #1e1e1e; align-items:center; cursor:pointer; }
 .hist-row:last-child { border-bottom:none; }
+.hist-row:active { background:rgba(232,255,60,.05); border-radius:4px; }
 .hist-date { font-size:10px; color:var(--muted); font-family:monospace; }
 .hist-val { font-size:12px; font-family:monospace; }
 .hist-val span { color:var(--accent); font-weight:700; }
@@ -105,6 +106,23 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-sys
 .run-row.light { opacity:.65; }
 .run-row.goal { background:rgba(28,201,100,.05); border-top-color:rgba(28,201,100,.2); }
 .run-struct { font-size:11px; color:#bbb; line-height:1.4; }
+
+/* CORRIDA LOG */
+.run-log-section { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px; }
+.run-log-title { font-size:9px; font-family:monospace; letter-spacing:2px; color:var(--green); margin-bottom:12px; }
+.run-log-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+.run-log-grid.full { grid-template-columns:1fr; }
+.run-log-label { font-size:9px; font-family:monospace; color:var(--muted); margin-bottom:4px; letter-spacing:1px; }
+.run-log-input { background:#111; border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:14px; width:100%; font-family:monospace; }
+.run-log-input:focus { outline:none; border-color:var(--green); }
+.run-log-input::placeholder { color:#444; }
+.run-log-btn { background:var(--green); color:#000; border:none; border-radius:6px; padding:10px; font-weight:800; font-size:13px; cursor:pointer; width:100%; margin-top:4px; }
+.run-hist-row { display:grid; grid-template-columns:68px 1fr 1fr 1fr; gap:4px; padding:7px 0; border-bottom:1px solid #1e1e1e; align-items:center; }
+.run-hist-row:last-child { border-bottom:none; }
+.run-hist-date { font-size:10px; color:var(--muted); font-family:monospace; }
+.run-hist-val { font-size:10px; font-family:monospace; color:#aaa; }
+.run-hist-val span { color:var(--green); font-weight:700; }
+.run-hist-note { font-size:10px; color:#555; font-style:italic; grid-column:1/-1; padding-top:2px; }
 </style>
 </head>
 <body>
@@ -113,7 +131,7 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-sys
   <div class="header-top">
     <div>
       <div class="header-label">APP TREINO · AVANÇADO</div>
-      <div class="header-title">FASE <span>2</span></div>
+      <div class="header-title">FASE <span>2</span> · <span style="font-size:14px;font-weight:600;color:#aaa">desde 09/09/2026</span></div>
       <div class="header-sub">97KG · 1,77M · EMAGRECIMENTO</div>
     </div>
     <div class="phase-badge">SET–NOV 2026</div>
@@ -250,6 +268,40 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-sys
     <div class="day-title">PROGRESSÃO 10KM</div>
     <div class="day-dur">1x/semana</div>
   </div>
+
+  <!-- REGISTRAR SESSÃO DE CORRIDA -->
+  <div class="run-log-section">
+    <div class="run-log-title">REGISTRAR SESSÃO</div>
+    <div class="run-log-grid">
+      <div>
+        <div class="run-log-label">CAMINHADA (min)</div>
+        <input class="run-log-input" id="run-walk" type="number" placeholder="0" inputmode="decimal">
+      </div>
+      <div>
+        <div class="run-log-label">CORRIDA (min)</div>
+        <input class="run-log-input" id="run-run" type="number" placeholder="0" inputmode="decimal">
+      </div>
+    </div>
+    <div class="run-log-grid">
+      <div>
+        <div class="run-log-label">DISTÂNCIA (km)</div>
+        <input class="run-log-input" id="run-dist" type="number" placeholder="0.0" inputmode="decimal">
+      </div>
+      <div>
+        <div class="run-log-label">DATA</div>
+        <input class="run-log-input" id="run-date" type="date">
+      </div>
+    </div>
+    <div class="run-log-grid full">
+      <div>
+        <div class="run-log-label">OBSERVAÇÕES</div>
+        <input class="run-log-input" id="run-notes" type="text" placeholder="Como foi? (opcional)">
+      </div>
+    </div>
+    <button class="run-log-btn" onclick="saveRunLog()">✓ SALVAR SESSÃO</button>
+    <div id="run-history" style="margin-top:14px;"></div>
+  </div>
+
   <div class="notes" style="border-color:rgba(28,201,100,.3)">
     <div class="notes-title" style="color:var(--green)">PONTO DE PARTIDA ATUAL</div>
     <div class="note-item">20min caminhada + 35min corrida = ~5,5km</div>
@@ -283,7 +335,7 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-sys
 
 <script>
 const EX = {
-  // PEITO + TRÍCEPS — variação da Fase 1
+  // PEITO + TRÍCEPS
   'A1': { name:'Supino c/ Halteres (pegada neutra)', note:'Amplitude maior que barra — foco no alongamento do peitoral', series:'4×8–10', cad:'3·1·2', rest:'90s' },
   'A2': { name:'Supino Declinado c/ Barra', note:'Enfatiza feixe esternal inferior do peitoral', series:'4×10–12', cad:'3·0·2', rest:'75s' },
   'A3': { name:'Fly na Máquina (Peck Deck)', note:'Pausa de 1s na contração — foco na adução', series:'3×12–15', cad:'3·1·2', rest:'60s' },
@@ -292,7 +344,7 @@ const EX = {
   'A6': { name:'Paralela c/ Peso (Dip)', note:'Inclinação leve do tronco para frente — foco no tríceps', series:'3×10–12', cad:'2·1·2', rest:'60s' },
   'A7': { name:'Tríceps Barra no Cabo (barra reta)', note:'Cotovelos fixos ao lado do corpo', series:'3×15', cad:'2·0·2', rest:'45s' },
 
-  // COSTAS + BÍCEPS — variação da Fase 1
+  // COSTAS + BÍCEPS
   'B1': { name:'Levantamento Terra Romeno c/ Barra', note:'Composto pesado — coluna neutra, puxa pelos calcanhares', series:'4×6–8', cad:'3·1·2', rest:'90s' },
   'B2': { name:'Remada Cavalinho (T-Bar Row)', note:'Peito apoiado no suporte — isola o dorsal', series:'4×10–12', cad:'3·1·2', rest:'75s' },
   'B3': { name:'Puxada Triângulo (pegada neutra)', note:'Pegada neutra recruta mais redondo maior e bíceps', series:'3×10–12', cad:'3·1·2', rest:'75s' },
@@ -301,16 +353,16 @@ const EX = {
   'B6': { name:'Rosca Martelo c/ Halteres', note:'Pegada neutra — braquial e braquiorradial além do bíceps', series:'4×10–12', cad:'3·1·2', rest:'75s' },
   'B7': { name:'Rosca Spider (banco inclinado invertido)', note:'Cotovelo fixo — isola o bíceps sem compensação', series:'3×12', cad:'3·1·2', rest:'60s' },
 
-  // PERNAS — variação da Fase 1
+  // PERNAS
   'C1': { name:'Levantamento Terra c/ Barra', note:'Aquecimento obrigatório — técnica acima de carga', series:'5×5', cad:'3·1·2', rest:'120s' },
   'C2': { name:'Hack Squat na Máquina', note:'Joelhos no eixo dos pés, profundidade total', series:'4×10–12', cad:'3·1·2', rest:'90s' },
   'C3': { name:'Afundo Caminhando c/ Halteres', note:'Tensão contínua — passada longa, joelho não toca o chão', series:'3×12 cada', cad:'2·0·2', rest:'75s' },
   'C4': { name:'Cadeira Adutora', note:'Pausa de 1s na contração — ative o glúteo médio', series:'3×15', cad:'2·1·2', rest:'60s' },
   'C5': { name:'Flexora em Pé (unilateral)', note:'Isola isquiotibial sem compensação do quadril', series:'4×12 cada', cad:'3·1·2', rest:'60s' },
   'C6': { name:'Agachamento Sumô c/ Halter (Goblet)', note:'Pés abertos, enfatiza adutores e glúteo', series:'3×15', cad:'3·0·2', rest:'60s' },
-  'C7': { name:'Panturrilha Sentado (Seated Calf)', note:'Isola o solear — diferente do calf em pé', series:'4×20', cad:'2·2·2', rest:'45s' },
+  'C7': { name:'Panturrilha em Pé Unilateral', note:'Isolando o gastrocnêmio — apoio unilateral para maior amplitude e estabilidade', series:'4×20', cad:'2·2·2', rest:'45s' },
 
-  // OMBROS + ABDÔMEN — variação da Fase 1
+  // OMBROS + ABDÔMEN
   'D1': { name:'Desenvolvimento c/ Barra (barra reta)', note:'Permite mais carga — aquecimento antes', series:'4×8–10', cad:'3·1·2', rest:'90s' },
   'D2': { name:'Elevação Lateral na Polia (unilateral)', note:'Cabo oferece tensão constante diferente do halter', series:'4×15 cada', cad:'2·1·3', rest:'60s' },
   'D3': { name:'Pássaro c/ Halteres (deltóide posterior)', note:'Tronco inclinado 45°, cotovelos levemente flexionados', series:'4×15', cad:'2·1·2', rest:'60s' },
@@ -325,11 +377,18 @@ function getLogs(id) {
   try { return JSON.parse(localStorage.getItem('log_'+id)||'[]'); } catch(e) { return []; }
 }
 function saveLogs(id, logs) {
-  localStorage.setItem('log_'+id, JSON.stringify(logs.slice(-3)));
+  localStorage.setItem('log_'+id, JSON.stringify(logs.slice(-6)));
 }
 function fmtDate(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+
+function fillFromHistory(id, weight, reps) {
+  const wEl = document.getElementById('w-'+id);
+  const rEl = document.getElementById('r-'+id);
+  if (wEl) wEl.value = weight;
+  if (rEl) rEl.value = reps;
 }
 
 function renderCard(id) {
@@ -338,14 +397,22 @@ function renderCard(id) {
   if (!el||!ex) return;
   const logs = getLogs(id);
   const open = el.classList.contains('is-open');
+
+  // Número sequencial: do mais antigo (#1) ao mais recente
   const histHTML = logs.length===0
     ? '<div class="hist-empty">Nenhum registro ainda</div>'
-    : logs.slice().reverse().map(l=>`
-        <div class="hist-row">
-          <div class="hist-date">${fmtDate(l.date)}</div>
+    : logs.slice().reverse().map((l, i) => {
+        const sessionNum = logs.length - i; // mais recente = maior número
+        return `<div class="hist-row" onclick="fillFromHistory('${id}','${l.weight}','${l.reps}')">
+          <div class="hist-date">${fmtDate(l.date)} · <span style="color:#666">#${sessionNum}</span></div>
           <div class="hist-val"><span>${l.weight}kg</span></div>
           <div class="hist-val"><span>${l.reps}</span> reps</div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
+
+  // Auto-fill com último registro
+  const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
+
   el.innerHTML = `
     <div class="ex-card-header" onclick="toggleCard('${id}')">
       <div class="ex-num">${id}</div>
@@ -364,12 +431,12 @@ function renderCard(id) {
     <div class="log-area">
       <div class="log-title">REGISTRAR SÉRIE</div>
       <div class="log-inputs">
-        <input class="log-input" id="w-${id}" type="number" placeholder="Peso (kg)" inputmode="decimal">
-        <input class="log-input" id="r-${id}" type="number" placeholder="Reps" inputmode="numeric">
+        <input class="log-input" id="w-${id}" type="number" placeholder="Peso (kg)" inputmode="decimal" value="${lastLog ? lastLog.weight : ''}">
+        <input class="log-input" id="r-${id}" type="number" placeholder="Reps" inputmode="numeric" value="${lastLog ? lastLog.reps : ''}">
         <button class="log-btn" onclick="saveLog('${id}')">✓</button>
       </div>
       <div class="history">
-        <div class="hist-title">ÚLTIMOS 3 TREINOS</div>
+        <div class="hist-title">ÚLTIMOS 6 TREINOS — toque para preencher</div>
         ${histHTML}
       </div>
     </div>`:''}`;
@@ -394,6 +461,62 @@ function saveLog(id) {
   renderCard(id);
 }
 
+// CORRIDA LOG
+function getRunLogs() {
+  try { return JSON.parse(localStorage.getItem('run_log')||'[]'); } catch(e) { return []; }
+}
+function saveRunLog() {
+  const walk = document.getElementById('run-walk').value.trim();
+  const run  = document.getElementById('run-run').value.trim();
+  const dist = document.getElementById('run-dist').value.trim();
+  const date = document.getElementById('run-date').value;
+  const notes= document.getElementById('run-notes').value.trim();
+  if (!run && !dist) { alert('Preencha ao menos corrida ou distância'); return; }
+  const logs = getRunLogs();
+  logs.push({ date: date || new Date().toISOString().slice(0,10), walk: walk||'0', run: run||'0', dist: dist||'', notes });
+  localStorage.setItem('run_log', JSON.stringify(logs.slice(-10)));
+  document.getElementById('run-walk').value = '';
+  document.getElementById('run-run').value  = '';
+  document.getElementById('run-dist').value = '';
+  document.getElementById('run-notes').value= '';
+  renderRunHistory();
+}
+function renderRunHistory() {
+  const logs = getRunLogs();
+  const el = document.getElementById('run-history');
+  if (!el) return;
+  if (logs.length === 0) { el.innerHTML = '<div class="hist-empty">Nenhuma sessão registrada ainda</div>'; return; }
+  const rows = logs.slice().reverse().map(l => {
+    const [y,m,d] = l.date.split('-');
+    const dateStr = `${d}/${m}`;
+    const walkStr = parseFloat(l.walk) > 0 ? `<span>${l.walk}min</span> cam` : '—';
+    const runStr  = parseFloat(l.run)  > 0 ? `<span>${l.run}min</span> corr` : '—';
+    const distStr = l.dist ? `<span>${l.dist}km</span>` : '—';
+    return `<div class="run-hist-row">
+      <div class="run-hist-date">${dateStr}</div>
+      <div class="run-hist-val">${walkStr}</div>
+      <div class="run-hist-val">${runStr}</div>
+      <div class="run-hist-val">${distStr}</div>
+      ${l.notes ? `<div class="run-hist-note">${l.notes}</div>` : ''}
+    </div>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="hist-title" style="color:var(--green)">SESSÕES ANTERIORES</div>
+    <div style="display:grid;grid-template-columns:68px 1fr 1fr 1fr;gap:4px;padding:0 0 6px;border-bottom:1px solid #1e1e1e;margin-bottom:4px">
+      <div style="font-size:8px;font-family:monospace;color:#333">DATA</div>
+      <div style="font-size:8px;font-family:monospace;color:#333">CAMINHADA</div>
+      <div style="font-size:8px;font-family:monospace;color:#333">CORRIDA</div>
+      <div style="font-size:8px;font-family:monospace;color:#333">DISTÂNCIA</div>
+    </div>
+    ${rows}`;
+}
+
+// Preencher data de hoje no campo de corrida
+function initRunDate() {
+  const el = document.getElementById('run-date');
+  if (el) el.value = new Date().toISOString().slice(0,10);
+}
+
 const TC = {A:'on-a',B:'on-b',C:'on-c',D:'on-d',R:'on-r'};
 function setTab(t) {
   ['A','B','C','D','R'].forEach(x=>{
@@ -402,6 +525,7 @@ function setTab(t) {
   });
   document.getElementById('pane-'+t).classList.add('show');
   document.getElementById('tab-'+t).className='tab '+TC[t];
+  if (t === 'R') { initRunDate(); renderRunHistory(); }
 }
 
 Object.keys(EX).forEach(id=>renderCard(id));
