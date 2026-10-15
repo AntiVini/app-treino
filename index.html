@@ -398,17 +398,31 @@ function renderCard(id) {
   const logs = getLogs(id);
   const open = el.classList.contains('is-open');
 
-  // Número sequencial: do mais antigo (#1) ao mais recente
+  // Número sequencial por dia: reinicia a cada novo dia
   const histHTML = logs.length===0
     ? '<div class="hist-empty">Nenhum registro ainda</div>'
-    : logs.slice().reverse().map((l, i) => {
-        const sessionNum = logs.length - i; // mais recente = maior número
-        return `<div class="hist-row" onclick="fillFromHistory('${id}','${l.weight}','${l.reps}')">
-          <div class="hist-date">${fmtDate(l.date)} · <span style="color:#666">#${sessionNum}</span></div>
-          <div class="hist-val"><span>${l.weight}kg</span></div>
-          <div class="hist-val"><span>${l.reps}</span> reps</div>
-        </div>`;
-      }).join('');
+    : (()=>{
+        let dayCount = {};
+        // primeira passagem: contar sequência por dia (ordem cronológica)
+        logs.forEach(l => {
+          const day = l.date.slice(0,10);
+          dayCount[day] = (dayCount[day]||0) + 1;
+        });
+        // segunda passagem: atribuir número dentro do dia
+        let daySeen = {};
+        const numbered = logs.map(l => {
+          const day = l.date.slice(0,10);
+          daySeen[day] = (daySeen[day]||0) + 1;
+          return { ...l, sessionNum: daySeen[day] };
+        });
+        return numbered.slice().reverse().map(l =>
+          `<div class="hist-row" onclick="fillFromHistory('${id}','${l.weight}','${l.reps}')">
+            <div class="hist-date">${fmtDate(l.date)} · <span style="color:#666">#${l.sessionNum}</span></div>
+            <div class="hist-val"><span>${l.weight}kg</span></div>
+            <div class="hist-val"><span>${l.reps}</span> reps</div>
+          </div>`
+        ).join('');
+      })();
 
   // Auto-fill com último registro
   const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
@@ -444,9 +458,20 @@ function renderCard(id) {
 
 function toggleCard(id) {
   const el = document.getElementById('ex-'+id);
+  const isOpening = !el.classList.contains('is-open');
+  // Fecha todos os outros
+  Object.keys(EX).forEach(otherId => {
+    if (otherId !== id) {
+      const other = document.getElementById('ex-'+otherId);
+      if (other && other.classList.contains('is-open')) {
+        other.classList.remove('is-open');
+        renderCard(otherId);
+      }
+    }
+  });
   el.classList.toggle('is-open');
   renderCard(id);
-  if (el.classList.contains('is-open')) {
+  if (isOpening) {
     setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
   }
 }
